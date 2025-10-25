@@ -1,6 +1,6 @@
 ﻿namespace DataBento.Net.Dbn;
 
-public enum DatasetId
+public enum SchemaId : ushort
 {
-    
+    Live=65535
 }

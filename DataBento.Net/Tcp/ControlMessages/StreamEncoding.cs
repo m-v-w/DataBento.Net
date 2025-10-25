@@ -1,6 +1,11 @@
-﻿namespace DataBento.Net.Tcp.Msgs;
+﻿namespace DataBento.Net.Tcp.ControlMessages;
 
-internal enum StreamEncoding
+public enum StreamEncoding
 {
     Dbn
+}
+
+public enum CompressionMode
+{
+    None, ZStd
 }

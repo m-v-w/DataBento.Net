@@ -1,6 +1,9 @@
-﻿namespace DataBento.Net.Tcp.Msgs;
+﻿using DataBento.Net.Dbn;
+
+namespace DataBento.Net.Tcp.ControlMessages;
 
 internal interface IRawControlMsgHandler
 {
-    void Handle(ReadOnlySpan<char> msg);
+    ControlMsgResult Handle(ReadOnlySpan<char> msgStr);
 }
+

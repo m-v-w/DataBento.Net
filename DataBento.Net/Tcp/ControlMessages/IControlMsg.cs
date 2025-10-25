@@ -1,9 +1,16 @@
-﻿namespace DataBento.Net.Tcp.Msgs;
+﻿using System.Buffers;
+
+namespace DataBento.Net.Tcp.ControlMessages;
 
 public interface IControlMsg
 {
-    
 }
+
+public interface IControlMsgWithSerializer : IControlMsg
+{
+    public void Serialize(IBufferWriter<byte> writer);
+}
+
 public class ControlMsgFieldAttribute(string name) : Attribute
 {
     public string Name { get; } = name;

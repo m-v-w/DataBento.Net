@@ -4,21 +4,26 @@ using System.Text;
 using CommunityToolkit.HighPerformance;
 using CommunityToolkit.HighPerformance.Buffers;
 
-namespace DataBento.Net.Tcp.Msgs;
+namespace DataBento.Net.Tcp.ControlMessages;
 
 public static class ControlMsgSerializer
 {
-    private const byte NewLine = (byte) '\n';
-    private const byte Pipe = (byte) '|';
-    private const byte Equal = (byte) '=';
-    private const byte One = (byte) '1';
-    private const byte Zero = (byte) '0';
+    internal const byte NewLine = (byte) '\n';
+    internal const byte Pipe = (byte) '|';
+    internal const byte Equal = (byte) '=';
+    internal const byte One = (byte) '1';
+    internal const byte Zero = (byte) '0';
 
     private static readonly Dictionary<string, Type> PrefixTypeMap = CreatePrefixTypeMap();
     private static readonly Dictionary<Type, Dictionary<string, PropertyInfo>> TypePropertyInfoCache 
         = PrefixTypeMap.Values.ToDictionary(x=> x, CreatePropertyInfoMap);
     public static void Serialize(IControlMsg msg, IBufferWriter<byte> writer)
     {
+        if (msg is IControlMsgWithSerializer controlMsgWithSerializer)
+        {
+            controlMsgWithSerializer.Serialize(writer);
+            return;
+        }
         var propertyInfos = GetPropertyInfoMap(msg.GetType());
         var first = true;
         foreach (var (attr, propertyInfo) in propertyInfos)
@@ -28,22 +33,22 @@ public static class ControlMsgSerializer
                 continue;
             if(!first)
                 writer.Write(Pipe);
-            WriteAscii(writer,attr);
+            writer.WriteAscii(attr);
             writer.Write(Equal);
-            WriteValue(writer, value, propertyInfo.PropertyType);
+            writer.WriteValue(value, propertyInfo.PropertyType);
             first = false;
         }
         writer.Write(NewLine);
     }
 
-    private static void WriteAscii(IBufferWriter<byte> writer, ReadOnlySpan<char> value)
+    internal static void WriteAscii(this IBufferWriter<byte> writer, ReadOnlySpan<char> value)
     {
         var span = writer.GetSpan(value.Length);
         if(!Encoding.ASCII.TryGetBytes(value, span, out int bytesWritten))
             throw new InvalidOperationException("Failed to encode ascii");
         writer.Advance(bytesWritten);
     }
-    private static void WriteValue(IBufferWriter<byte> writer, object value, Type propertyType)
+    private static void WriteValue(this IBufferWriter<byte> writer, object value, Type propertyType)
     {
         if (value is bool boolValue)
         {
@@ -59,6 +64,15 @@ public static class ControlMsgSerializer
         {
             WriteAscii(writer,value.ToString()!.ToLowerInvariant());
             return;
+        }
+        if (propertyType.IsGenericType)
+        {
+            var nullableType = Nullable.GetUnderlyingType(propertyType);
+            if (nullableType != null)
+            {
+                WriteValue(writer, value, nullableType);
+                return;
+            }
         }
         WriteAscii(writer,value.ToString() ?? string.Empty);
     }
@@ -104,7 +118,7 @@ public static class ControlMsgSerializer
             throw new ControlMsgSerializationError($"Empty value for type {propertyType}");
         if(propertyType == typeof(bool))
         {
-            if(int.TryParse(fieldValue, out var intValue))
+            if(!int.TryParse(fieldValue, out var intValue))
                 throw new ControlMsgSerializationError($"Invalid bool value: {fieldValue}");
             return intValue != 0;
         }

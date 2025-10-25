@@ -1,6 +1,9 @@
 ﻿namespace DataBento.Net.Tcp;
 
-public class TcpConnectionWrapper
+internal class TcpConnectionWrapper
 {
-    
+    public async Task Connect()
+    {
+        
+    }
 }
