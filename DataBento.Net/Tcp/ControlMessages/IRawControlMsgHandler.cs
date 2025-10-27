@@ -1,6 +1,4 @@
-﻿using DataBento.Net.Dbn;
-
-namespace DataBento.Net.Tcp.ControlMessages;
+﻿namespace DataBento.Net.Tcp.ControlMessages;
 
 internal interface IRawControlMsgHandler
 {

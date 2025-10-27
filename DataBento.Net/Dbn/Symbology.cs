@@ -1,4 +1,6 @@
-﻿namespace DataBento.Net.Dbn;
+﻿using System.ComponentModel;
+
+namespace DataBento.Net.Dbn;
 
 public enum SymbolType : byte
 {
@@ -44,8 +46,12 @@ public enum SymbolType : byte
     /// Symbology using Bloomberg exchange level tickers.
     #[pyo3(name = "FIGI_TICKER")]
     FigiTicker = 12,*/
+    [Description("instrument_id")]
     InstrumentId = 0, // Symbology using the original symbols provided by the publisher.
+    [Description("raw_symbol")]
     RawSymbol = 1, // Symbology using the original symbols provided by the publisher.
+    [Description("continuous")]
     Continuous = 3, // A Databento-specific symbology
+    [Description("parent")]
     Parent = 4, // A Databento-specific symbology
 }

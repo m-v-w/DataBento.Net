@@ -1,6 +1,5 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
-using DataBento.Net.Dbn;
 using DataBento.Net.Tcp.ControlMessages;
 using Microsoft.Extensions.Logging;
 
@@ -10,12 +9,14 @@ internal class ControlMsgHandler
 {
     private readonly ILogger _logger;
     private readonly DataBentoTcpConfig _config;
+    private readonly SubscriptionHandler _subscriptionHandler;
     public string? LsgVersion { get; private set; }
 
-    public ControlMsgHandler(DataBentoTcpConfig config, ILogger logger)
+    public ControlMsgHandler(DataBentoTcpConfig config, SubscriptionHandler subscriptionHandler, ILogger logger)
     {
         _config = config;
         _logger = logger;
+        _subscriptionHandler = subscriptionHandler;
     }
 
     private async Task OnCram(CramMsg msg, ControlMsgClient client)
@@ -40,9 +41,10 @@ internal class ControlMsgHandler
     }
     private async Task OnAuthSuccess(AuthenticationResponseMsg msg, ControlMsgClient client)
     {
-        _logger.LogInformation("Authentication succeeded session-id: {SessionId} {Error}", msg.SessionId, msg.Error);
+        _logger.LogInformation("Authentication succeeded session-id: {SessionId} {Error}, initializing subscriptions", msg.SessionId, msg.Error);
+        await _subscriptionHandler.InitSubscriptions(client, CancellationToken.None);
         // Make sure the stream reader is set to state Metadata and ready for decompression
-        await Task.Delay(TimeSpan.FromMilliseconds(100)); 
+        await Task.Delay(TimeSpan.FromMilliseconds(100));
         await client.Send(new SessionStartMsg());
     }
     public ControlMsgResult Handle(ReadOnlySpan<char> msgStr, ControlMsgClient client)

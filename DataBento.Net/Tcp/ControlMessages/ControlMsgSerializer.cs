@@ -13,6 +13,7 @@ public static class ControlMsgSerializer
     internal const byte Equal = (byte) '=';
     internal const byte One = (byte) '1';
     internal const byte Zero = (byte) '0';
+    internal const byte Comma = (byte)',';
 
     private static readonly Dictionary<string, Type> PrefixTypeMap = CreatePrefixTypeMap();
     private static readonly Dictionary<Type, Dictionary<string, PropertyInfo>> TypePropertyInfoCache 

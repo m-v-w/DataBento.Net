@@ -5,21 +5,28 @@ namespace DataBento.Net.Dbn.StatefulReader;
 
 public class Mbp1Reader
 {
-    private const int StructSize = 16+64;
     private Mbp1Struct _state;
     public void Initialize(ReadOnlyMemory<byte> data)
     {
         var span = data.Span;
-        if(span.Length != StructSize)
-            throw new ArgumentException($"Mbp1 struct must be {StructSize} bytes");
-        _state = Unsafe.As<byte, Mbp1Struct>(ref MemoryMarshal.GetReference(span));
+        _state = Mbp1Struct.UnsafeReference(span);
     }
-    public uint InstrumentId => _state.Header.InstrumentId;
-    public ulong TsEvent => _state.Header.TsEvent;
+    public ulong TsEvent => _state.TsEvent;
     public ulong TsRecv => _state.TsRecv;
-    public decimal PriceDecimal => _state.Price / 1_000_000_000M;
+    public uint InstrumentId => _state.InstrumentId;
+    public decimal PriceDecimal => _state.PriceDecimal;
+    public decimal BidDecimal => _state.BidDecimal;
+    public decimal AskDecimal => _state.AskDecimal;
+    public uint BidSize => _state.BidSize;
+    public uint AskSize => _state.AskSize;
+    public RecordAction RecordAction => _state.RecordAction;
+    public RecordSide RecordSide => _state.RecordSide;
+    
     public override string ToString()
     {
-        return $"Mbp1 InstrumentId={InstrumentId} TsEvent={TsEvent} TsRecv={TsRecv} Price={PriceDecimal}";
+        var latency = TsRecv - TsEvent;
+        return $"Mbp1 InstrumentId={InstrumentId} TsEvent={TimestampUtils.UnixNanoToDateTime(TsEvent):O} " +
+               $"{RecordAction} {RecordSide}={PriceDecimal} " +
+               $"{BidDecimal} ({BidSize}) / {AskDecimal} ({AskSize})";
     }
 }

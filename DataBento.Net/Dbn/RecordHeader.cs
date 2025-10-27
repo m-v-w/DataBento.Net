@@ -3,7 +3,7 @@
 namespace DataBento.Net.Dbn;
 
 [StructLayout(LayoutKind.Sequential, Size=16, Pack=1)]
-internal struct RecordHeader
+public struct RecordHeader
 {
     public byte Length; // The length of the record in 32-bit words.
     public byte RType; //The record type. Each schema corresponds with a single rtype value.

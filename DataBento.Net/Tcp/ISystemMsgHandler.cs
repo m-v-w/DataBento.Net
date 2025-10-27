@@ -6,6 +6,7 @@ public interface ISystemMsgHandler
 {
     ControlMsgResult Handle(SystemMessage systemMsg);
     ControlMsgResult Handle(ErrorMessage errorMsg);
+    void Handle(SymbolMappingMsg symbolMappingMsg);
 }
 
 public enum ControlMsgResult

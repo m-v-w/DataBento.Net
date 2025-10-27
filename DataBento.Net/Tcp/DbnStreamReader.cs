@@ -12,13 +12,12 @@ namespace DataBento.Net.Tcp;
 
 public class DbnStreamReader : IDisposable, IAsyncDisposable
 {
-    private const int BufferSize = 4 * 4096;
     private const int RecordHeaderLength = 16;
     private const int MetadataHeaderLength = 8;
     private readonly Pipe _pipe = new(PipeOptions.Default);
     private readonly ILogger _logger;
     private readonly Stream _stream;
-    private readonly ISubscriptionHandler _subscriptionHandler;
+    private readonly ISubscriptionMsgHandler _subscriptionMsgHandler;
     private readonly ISystemMsgHandler _systemMsgHandler;
     private readonly bool _leaveOpen;
     private Metadata? _metadata;
@@ -26,17 +25,16 @@ public class DbnStreamReader : IDisposable, IAsyncDisposable
     public long MsgSeq => Interlocked.Read(ref _msgSeq);
     public bool Streaming => _metadata != null;
 
-    public DbnStreamReader(Stream stream, ISubscriptionHandler subscriptionHandler,
+    public DbnStreamReader(Stream stream, ISubscriptionMsgHandler subscriptionMsgHandler,
         ISystemMsgHandler systemMsgHandler, ILogger logger, bool leaveOpen = true)
     {
         _logger = logger;
         _leaveOpen = leaveOpen;
         _systemMsgHandler = systemMsgHandler;
         _stream = stream;
-        _subscriptionHandler = subscriptionHandler;
+        _subscriptionMsgHandler = subscriptionMsgHandler;
         Debug.Assert(Marshal.SizeOf<RecordHeader>() == RecordHeaderLength);
     }
-
     private void ProcessRecord(in RecordHeader header, ReadOnlyMemory<byte> msg)
     {
         var recordType = (RecordType)header.RType;
@@ -55,19 +53,17 @@ public class DbnStreamReader : IDisposable, IAsyncDisposable
                     RecordParser.ParseErrorMsg(_metadata, in header, msg.Span.Slice(RecordHeaderLength))));
                 break;
             case RecordType.SymbolMapping:
-                var mapping =
-                    RecordParser.ParseSymbolMappingMsg(_metadata, in header, msg.Span.Slice(RecordHeaderLength));
-                _logger.LogInformation("Symbol mapping {Mapping}", mapping);
+                _systemMsgHandler.Handle(RecordParser.ParseSymbolMappingMsg(_metadata, in header,
+                    msg.Span.Slice(RecordHeaderLength)));
                 break;
             case RecordType.Mbp1:
-                _subscriptionHandler.OnUpdate(recordType, msg);
+                _subscriptionMsgHandler.OnUpdate(recordType, msg);
                 break;
             default:
                 _logger.LogWarning("Unknown record type {RecordType:X} len={Length}", header.RType, header.Length);
                 break;
         }
     }
-
     private void HandleControlMsgResult(ControlMsgResult result)
     {
         switch (result)
@@ -100,7 +96,7 @@ public class DbnStreamReader : IDisposable, IAsyncDisposable
         using var owner = SpanOwner<byte>.Allocate(len);
         sequence.Slice(MetadataHeaderLength, len).CopyTo(owner.Span);
         _metadata = MetadataParser.Parse(owner.Span.Slice(0, len), version);
-        _subscriptionHandler.OnMetadata(_metadata);
+        _subscriptionMsgHandler.OnMetadata(_metadata);
         pos = sequence.GetPosition(MetadataHeaderLength + len);
         return true;
     }
@@ -154,10 +150,6 @@ public class DbnStreamReader : IDisposable, IAsyncDisposable
                 }
             }
         }
-        catch (OperationCanceledException)
-        {
-            // ignore
-        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Processing data error");
@@ -177,30 +169,13 @@ public class DbnStreamReader : IDisposable, IAsyncDisposable
         writer.Advance(spillover.Length);
         await writer.FlushAsync();
     }
-    public async Task Read(CancellationToken cancelToken)
+    public async Task Read(CancellationToken cancellationToken)
     {
         var processTask = Process();
         var writer = _pipe.Writer;
         try
         {
-            while (!cancelToken.IsCancellationRequested)
-            {
-                var memory = writer.GetMemory(BufferSize);
-                // ReSharper disable once PossiblyMistakenUseOfCancellationToken
-                var c = await _stream.ReadAsync(memory, cancelToken);
-                if (c == 0)
-                {
-                    return; // disconnected
-                }
-
-                writer.Advance(c);
-                // ReSharper disable once PossiblyMistakenUseOfCancellationToken
-                var flushResult = await writer.FlushAsync(cancelToken);
-                if (flushResult.IsCompleted)
-                {
-                    throw new InvalidOperationException("Pipe completed, while writing");
-                }
-            }
+            await _stream.CopyToAsync(writer, cancellationToken);
         }
         catch (OperationCanceledException)
         {
@@ -218,14 +193,11 @@ public class DbnStreamReader : IDisposable, IAsyncDisposable
     {
         _stream.Close();
     }
-
-
     public void Dispose()
     {
         if (!_leaveOpen)
             _stream.Dispose();
     }
-
     public async ValueTask DisposeAsync()
     {
         if (!_leaveOpen)

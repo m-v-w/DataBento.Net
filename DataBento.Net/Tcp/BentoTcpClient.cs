@@ -1,4 +1,6 @@
 ﻿using System.Net.Sockets;
+using DataBento.Net.Dbn;
+using DataBento.Net.Subscriptions;
 using DataBento.Net.Tcp.ControlMessages;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -6,11 +8,11 @@ using ZstdSharp;
 
 namespace DataBento.Net.Tcp;
 
-public class BentoTcpClient : BackgroundService
+public class BentoTcpClient : BackgroundService, ISystemMsgHandler
 {
     private const string UrlSuffix = ".lsg.databento.com";
     private const int Port = 13000;
-    private const int MaxSymbolsPerSubscriptionRequest = 500;
+    
     public bool Connected => _reader?.Streaming ?? false;
     private DbnStreamReader? _reader;
     private ControlMsgClient? _controlMsgClient;
@@ -23,42 +25,30 @@ public class BentoTcpClient : BackgroundService
     private readonly ILogger _logger;
     private readonly ILoggerFactory _loggerFactory;
     private readonly IRetryPolicy _retryPolicy;
-    private readonly ISubscriptionHandler _subscriptionHandler;
-    private readonly ISystemMsgHandler _systemMsgHandler;
+    private readonly ISubscriptionMsgHandler _subscriptionMsgHandler;
     private readonly DataBentoTcpConfig _config;
     private readonly ControlMsgHandler _controlMsgHandler;
+    private readonly SubscriptionHandler _subscriptionHandler;
     
     public BentoTcpClient(ILoggerFactory loggerFactory, IRetryPolicy retryPolicy,
-        ISubscriptionHandler subscriptionHandler, DataBentoTcpConfig config, ISystemMsgHandler systemMsgHandler)
+        ISubscriptionMsgHandler subscriptionMsgHandler, DataBentoTcpConfig config, ISubscriptionContainer subscriptionContainer)
     {
         _loggerFactory = loggerFactory;
         _retryPolicy = retryPolicy;
-        _subscriptionHandler = subscriptionHandler;
+        _subscriptionMsgHandler = subscriptionMsgHandler;
         _config = config;
-        _systemMsgHandler = systemMsgHandler;
+        _subscriptionHandler = new SubscriptionHandler(subscriptionContainer, config);
         _host = $"{config.Dataset.ToLowerInvariant().Replace('.','-')}{UrlSuffix}";
-        _controlMsgHandler = new ControlMsgHandler(config, CreateLogger("ControlMsgHandler"));
+        _controlMsgHandler = new ControlMsgHandler(config, _subscriptionHandler, CreateLogger("ControlMsgHandler"));
         _logger = CreateLogger("BentoTcpClient");
     }
 
-    public async Task Subscribe(IEnumerable<string> symbols, uint? id=null)
+    public async Task Subscribe(IEnumerable<SubscriptionKey> keys, CancellationToken cancellationToken=default)
     {
         var client = _controlMsgClient;
         if (client == null)
             throw new InvalidOperationException("Not connected");
-        var chunks = symbols.Chunk(MaxSymbolsPerSubscriptionRequest).ToArray();
-        for(var i=0; i<chunks.Length; i++)
-        {
-            var chunk = chunks[i];
-            await client.Send(new SubscriptionRequest()
-            {
-                Schema = "mbp-1", 
-                SymbolTypeIn = "raw_symbol", 
-                Symbols = string.Join(',', chunk), 
-                IsLast = i == chunks.Length - 1, 
-                Id = id
-            });
-        }
+        await _subscriptionHandler.Subscribe(keys, client, cancellationToken);
     }
     private ILogger CreateLogger(string categoryName)
     {
@@ -73,7 +63,7 @@ public class BentoTcpClient : BackgroundService
             CompressionMode.None => networkStream,
             _ => throw new InvalidOperationException($"Unsupported compression mode {_config.CompressionMode}")
         };
-        return new DbnStreamReader(stream, _subscriptionHandler, _systemMsgHandler, 
+        return new DbnStreamReader(stream, _subscriptionMsgHandler, this, 
             CreateLogger("StreamReader"), stream == networkStream);
     }
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -88,9 +78,11 @@ public class BentoTcpClient : BackgroundService
                 _logger.LogInformation("Connecting...");
                 await tcpClient.ConnectAsync(_host, Port, stoppingToken);
                 await using var stream = tcpClient.GetStream();
-                using (_controlMsgClient = new ControlMsgClient(stream, _controlMsgHandler, _config, CreateLogger("ControlMsg")))
+                using (_controlMsgClient = new ControlMsgClient(stream, _controlMsgHandler, CreateLogger("ControlMsg")))
                 {
                     var spillover = await _controlMsgClient.Read(stoppingToken);
+                    if(spillover.Length > 0 && _config.CompressionMode != CompressionMode.None)
+                        throw new InvalidOperationException("Spillover data present with compression enabled");
                     if(!stream.Socket.Connected)
                         continue; // disconnected on control message change
                     retry = 0;
@@ -162,5 +154,35 @@ public class BentoTcpClient : BackgroundService
         _logger.LogError("Connection stale, closing...");
         _lastMsgTime = DateTime.UtcNow;
         reader.Disconnect();
+    }
+
+    ControlMsgResult ISystemMsgHandler.Handle(SystemMessage systemMsg)
+    {
+        if (systemMsg.Message == "Heartbeat")
+        {
+            _logger.LogDebug("Heartbeat");
+            return ControlMsgResult.None;
+        }
+        if (systemMsg.Message.StartsWith("Subscription request")
+            && systemMsg.Message.EndsWith("data succeeded"))
+        {
+            _logger.LogDebug("Subscription ACK");
+            return ControlMsgResult.None;
+        }
+        _logger.LogWarning("Received unknown system message: {Msg}", systemMsg);
+        return ControlMsgResult.None;
+    }
+    ControlMsgResult ISystemMsgHandler.Handle(ErrorMessage errorMsg)
+    {
+        _logger.LogError("Error Message {Msg}", errorMsg);
+        return ControlMsgResult.Failed;
+    }
+    void ISystemMsgHandler.Handle(SymbolMappingMsg symbolMappingMsg)
+    {
+        if (_logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug("Symbol mapping {Mapping}", symbolMappingMsg);    
+        }
+        _subscriptionHandler.HandleSymbolMapping(symbolMappingMsg);
     }
 }

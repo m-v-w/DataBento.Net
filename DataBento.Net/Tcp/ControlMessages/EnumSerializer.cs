@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Reflection;
+using CommunityToolkit.HighPerformance.Buffers;
 
 namespace DataBento.Net.Tcp.ControlMessages;
 
@@ -18,7 +19,7 @@ internal static class EnumSerializer<T> where T : Enum
             var str = value.ToString();
             var fieldInfo = typeof(T).GetField(str) ?? throw new InvalidProgramException("invalid enum value");
             var attr = fieldInfo.GetCustomAttribute<DescriptionAttribute>();
-            dict[value] = attr?.Description ?? str;
+            dict[value] = StringPool.Shared.GetOrAdd(attr?.Description ?? str.ToLower());
         }
         return dict;
     }

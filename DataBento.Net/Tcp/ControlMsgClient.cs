@@ -1,12 +1,9 @@
 ﻿using System.Buffers;
 using System.Net.Sockets;
-using System.Security.Cryptography;
 using System.Text;
 using CommunityToolkit.HighPerformance.Buffers;
-using DataBento.Net.Dbn;
 using DataBento.Net.Tcp.ControlMessages;
 using Microsoft.Extensions.Logging;
-using ZstdSharp;
 
 namespace DataBento.Net.Tcp;
 
@@ -16,15 +13,12 @@ internal class ControlMsgClient : IDisposable
     private readonly ILogger _logger;
     private readonly NetworkStream _networkStream;
     private readonly ControlMsgHandler _controlMsgHandler;
-    private readonly DataBentoTcpConfig _config;
     private readonly CancellationTokenSource _phaseCompleted = new ();
     private readonly SemaphoreSlim _sendLocker = new(1,1);
-    internal ControlMsgClient(NetworkStream networkStream, ControlMsgHandler controlMsgHandler, 
-        DataBentoTcpConfig config, ILogger logger)
+    internal ControlMsgClient(NetworkStream networkStream, ControlMsgHandler controlMsgHandler, ILogger logger)
     {
         _networkStream = networkStream;
         _controlMsgHandler = controlMsgHandler;
-        _config = config;
         _logger = logger;
     }
 
