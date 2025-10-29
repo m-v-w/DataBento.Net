@@ -25,7 +25,9 @@ public class DataBentoClient : IHostedService
             Dataset = dataset,
             ApiKey = _config.Value.ApiKey,
             CompressionMode = _config.Value.CompressionMode,
-            TsOut = _config.Value.TsOut
+            TsOut = _config.Value.TsOut,
+            StaleConnectionTimeout = _config.Value.StaleConnectionTimeout,
+            FlushMsgInterval = _config.Value.FlushMsgInterval
         };
         return ActivatorUtilities.CreateInstance<BentoTcpClient>(_serviceProvider, subscriptionMsgHandler, config);
     }

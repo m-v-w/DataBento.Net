@@ -4,20 +4,26 @@
         <TargetFramework>net9.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <Version>0.0.1-alpha</Version>
+        <Version>0.0.3-alpha</Version>
         <Title>DataBento.Net databento.com client</Title>
         <Authors />
         <Description>databento.com client</Description>
         <PackageProjectUrl>https://github.com/m-v-w/DataBento.Net</PackageProjectUrl>
         <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>
       <PackageReference Include="CommunityToolkit.HighPerformance" Version="8.4.0" />
       <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.10" />
+      <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.10" />
       <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.10" />
       <PackageReference Include="ZstdSharp.Port" Version="0.8.6" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\DbnSourceGenerator\DbnSourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -25,5 +31,11 @@
     </ItemGroup>
     <ItemGroup>
         <None Include="LICENSE" Pack="true" PackagePath=""/>
+    </ItemGroup>
+    <ItemGroup>
+      <None Remove="dbnschemafiles\Trades.json" />
+      <AdditionalFiles Include="dbnschemafiles\Trades.json" />
+      <None Remove="dbnschemafiles\Mdp1.json" />
+      <AdditionalFiles Include="dbnschemafiles\Mbp1.json" />
     </ItemGroup>
 </Project>

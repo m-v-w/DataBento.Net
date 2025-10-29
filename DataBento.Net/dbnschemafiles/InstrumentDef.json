@@ -1,0 +1,282 @@
+[
+  {
+    "name": "length",
+    "type": "uint8_t"
+  },
+  {
+    "name": "rtype",
+    "type": "uint8_t"
+  },
+  {
+    "name": "publisher_id",
+    "type": "uint16_t"
+  },
+  {
+    "name": "instrument_id",
+    "type": "uint32_t"
+  },
+  {
+    "name": "ts_event",
+    "type": "uint64_t"
+  },
+  {
+    "name": "ts_recv",
+    "type": "uint64_t"
+  },
+  {
+    "name": "min_price_increment",
+    "type": "int64_t"
+  },
+  {
+    "name": "display_factor",
+    "type": "int64_t"
+  },
+  {
+    "name": "expiration",
+    "type": "uint64_t"
+  },
+  {
+    "name": "activation",
+    "type": "uint64_t"
+  },
+  {
+    "name": "high_limit_price",
+    "type": "int64_t"
+  },
+  {
+    "name": "low_limit_price",
+    "type": "int64_t"
+  },
+  {
+    "name": "max_price_variation",
+    "type": "int64_t"
+  },
+  {
+    "name": "trading_reference_price",
+    "type": "int64_t"
+  },
+  {
+    "name": "unit_of_measure_qty",
+    "type": "int64_t"
+  },
+  {
+    "name": "min_price_increment_amount",
+    "type": "int64_t"
+  },
+  {
+    "name": "price_ratio",
+    "type": "int64_t"
+  },
+  {
+    "name": "inst_attrib_value",
+    "type": "int32_t"
+  },
+  {
+    "name": "underlying_id",
+    "type": "uint32_t"
+  },
+  {
+    "name": "raw_instrument_id",
+    "type": "uint32_t"
+  },
+  {
+    "name": "market_depth_implied",
+    "type": "int32_t"
+  },
+  {
+    "name": "market_depth",
+    "type": "int32_t"
+  },
+  {
+    "name": "market_segment_id",
+    "type": "uint32_t"
+  },
+  {
+    "name": "max_trade_vol",
+    "type": "uint32_t"
+  },
+  {
+    "name": "min_lot_size",
+    "type": "int32_t"
+  },
+  {
+    "name": "min_lot_size_block",
+    "type": "int32_t"
+  },
+  {
+    "name": "min_lot_size_round_lot",
+    "type": "int32_t"
+  },
+  {
+    "name": "min_trade_vol",
+    "type": "uint32_t"
+  },
+  {
+    "name": "_reserved2",
+    "type": "char[4]"
+  },
+  {
+    "name": "contract_multiplier",
+    "type": "int32_t"
+  },
+  {
+    "name": "decay_quantity",
+    "type": "int32_t"
+  },
+  {
+    "name": "original_contract_size",
+    "type": "int32_t"
+  },
+  {
+    "name": "_reserved3",
+    "type": "char[4]"
+  },
+  {
+    "name": "trading_reference_date",
+    "type": "uint16_t"
+  },
+  {
+    "name": "appl_id",
+    "type": "int16_t"
+  },
+  {
+    "name": "maturity_year",
+    "type": "uint16_t"
+  },
+  {
+    "name": "decay_start_date",
+    "type": "uint16_t"
+  },
+  {
+    "name": "channel_id",
+    "type": "uint16_t"
+  },
+  {
+    "name": "currency",
+    "type": "char[4]"
+  },
+  {
+    "name": "settl_currency",
+    "type": "char[4]"
+  },
+  {
+    "name": "secsubtype",
+    "type": "char[6]"
+  },
+  {
+    "name": "raw_symbol",
+    "type": "char[22]"
+  },
+  {
+    "name": "group",
+    "type": "char[21]"
+  },
+  {
+    "name": "exchange",
+    "type": "char[5]"
+  },
+  {
+    "name": "asset",
+    "type": "char[7]"
+  },
+  {
+    "name": "cfi",
+    "type": "char[7]"
+  },
+  {
+    "name": "security_type",
+    "type": "char[7]"
+  },
+  {
+    "name": "unit_of_measure",
+    "type": "char[31]"
+  },
+  {
+    "name": "underlying",
+    "type": "char[21]"
+  },
+  {
+    "name": "strike_price_currency",
+    "type": "char[4]"
+  },
+  {
+    "name": "instrument_class",
+    "type": "char"
+  },
+  {
+    "name": "_reserved4",
+    "type": "char[2]"
+  },
+  {
+    "name": "strike_price",
+    "type": "int64_t"
+  },
+  {
+    "name": "_reserved5",
+    "type": "char[6]"
+  },
+  {
+    "name": "match_algorithm",
+    "type": "char"
+  },
+  {
+    "name": "md_security_trading_status",
+    "type": "uint8_t"
+  },
+  {
+    "name": "main_fraction",
+    "type": "uint8_t"
+  },
+  {
+    "name": "price_display_format",
+    "type": "uint8_t"
+  },
+  {
+    "name": "settl_price_type",
+    "type": "uint8_t"
+  },
+  {
+    "name": "sub_fraction",
+    "type": "uint8_t"
+  },
+  {
+    "name": "underlying_product",
+    "type": "uint8_t"
+  },
+  {
+    "name": "security_update_action",
+    "type": "char"
+  },
+  {
+    "name": "maturity_month",
+    "type": "uint8_t"
+  },
+  {
+    "name": "maturity_day",
+    "type": "uint8_t"
+  },
+  {
+    "name": "maturity_week",
+    "type": "uint8_t"
+  },
+  {
+    "name": "user_defined_instrument",
+    "type": "char"
+  },
+  {
+    "name": "contract_multiplier_unit",
+    "type": "int8_t"
+  },
+  {
+    "name": "flow_schedule_type",
+    "type": "int8_t"
+  },
+  {
+    "name": "tick_rule",
+    "type": "uint8_t"
+  },
+  {
+    "name": "_dummy",
+    "type": "char[3]"
+  }
+]

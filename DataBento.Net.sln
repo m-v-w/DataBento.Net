@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataBento.Net", "DataBento.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataBento.Example", "DataBento.Example\DataBento.Example.csproj", "{9EFECB00-5B4A-4F43-89C5-9C63A08AD817}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DbnSourceGenerator", "DbnSourceGenerator\DbnSourceGenerator.csproj", "{F20E15B8-F02F-4FDB-8F8F-2486EEF60B7E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{9EFECB00-5B4A-4F43-89C5-9C63A08AD817}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9EFECB00-5B4A-4F43-89C5-9C63A08AD817}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9EFECB00-5B4A-4F43-89C5-9C63A08AD817}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F20E15B8-F02F-4FDB-8F8F-2486EEF60B7E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F20E15B8-F02F-4FDB-8F8F-2486EEF60B7E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F20E15B8-F02F-4FDB-8F8F-2486EEF60B7E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F20E15B8-F02F-4FDB-8F8F-2486EEF60B7E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -20,10 +20,12 @@ public class DbnStreamReader : IDisposable, IAsyncDisposable
     private readonly ISubscriptionMsgHandler _subscriptionMsgHandler;
     private readonly ISystemMsgHandler _systemMsgHandler;
     private readonly bool _leaveOpen;
+    private readonly LatencyStatistics _latencyStatistics = new(100);
     private Metadata? _metadata;
     private long _msgSeq;
     public long MsgSeq => Interlocked.Read(ref _msgSeq);
     public bool Streaming => _metadata != null;
+    public LatencyStatistics LatencyStatistics => _latencyStatistics;
 
     public DbnStreamReader(Stream stream, ISubscriptionMsgHandler subscriptionMsgHandler,
         ISystemMsgHandler systemMsgHandler, ILogger logger, bool leaveOpen = true)
@@ -35,28 +37,33 @@ public class DbnStreamReader : IDisposable, IAsyncDisposable
         _subscriptionMsgHandler = subscriptionMsgHandler;
         Debug.Assert(Marshal.SizeOf<RecordHeader>() == RecordHeaderLength);
     }
-    private void ProcessRecord(in RecordHeader header, ReadOnlyMemory<byte> msg)
+    private void ProcessRecord(in RecordHeader header, ReadOnlySpan<byte> msg)
     {
         var recordType = (RecordType)header.RType;
         if (_metadata == null)
             throw new InvalidOperationException("Metadata must be processed before symbol mapping records");
         if (_metadata.TsOut)
+        {
+            _latencyStatistics.Sample(msg.Slice(msg.Length - 8));
             msg = msg.Slice(0, msg.Length - 8); // remove trailing timestamp
+        }
         switch (recordType)
         {
             case RecordType.System:
                 HandleControlMsgResult(_systemMsgHandler.Handle(
-                    RecordParser.ParseSystemMsg(_metadata, in header, msg.Span.Slice(RecordHeaderLength))));
+                    RecordParser.ParseSystemMsg(_metadata, in header, msg.Slice(RecordHeaderLength))));
                 break;
             case RecordType.Error:
                 HandleControlMsgResult(_systemMsgHandler.Handle(
-                    RecordParser.ParseErrorMsg(_metadata, in header, msg.Span.Slice(RecordHeaderLength))));
+                    RecordParser.ParseErrorMsg(_metadata, in header, msg.Slice(RecordHeaderLength))));
                 break;
             case RecordType.SymbolMapping:
                 _systemMsgHandler.Handle(RecordParser.ParseSymbolMappingMsg(_metadata, in header,
-                    msg.Span.Slice(RecordHeaderLength)));
+                    msg.Slice(RecordHeaderLength)));
                 break;
+            case RecordType.Mbp0:
             case RecordType.Mbp1:
+            case RecordType.InstrumentDef:
                 _subscriptionMsgHandler.OnUpdate(recordType, msg);
                 break;
             default:
@@ -108,14 +115,21 @@ public class DbnStreamReader : IDisposable, IAsyncDisposable
         if (seqLen < RecordHeaderLength)
             return false;
         Span<byte> headerBuffer = stackalloc byte[RecordHeaderLength];
-        sequence.Slice(0, RecordHeaderLength).CopyTo(headerBuffer);
+        sequence.Slice(pos, RecordHeaderLength).CopyTo(headerBuffer);
         ref var header = ref Unsafe.As<byte, RecordHeader>(ref MemoryMarshal.GetReference(headerBuffer));
         var totalLen = header.Length * 4;
         if (seqLen < totalLen)
             return false;
-        using var owner = MemoryPool<byte>.Shared.Rent(totalLen);
-        sequence.Slice(0, totalLen).CopyTo(owner.Memory.Span);
-        ProcessRecord(header, owner.Memory.Slice(0, totalLen));
+        if (sequence.IsSingleSegment)
+        {
+            ProcessRecord(in header, sequence.FirstSpan.Slice(0, totalLen));
+        }
+        else
+        {
+            using var owner = SpanOwner<byte>.Allocate(totalLen);
+            sequence.Slice(pos, totalLen).CopyTo(owner.Span);
+            ProcessRecord(in header, owner.Span.Slice(0, totalLen));    
+        }
         pos = sequence.GetPosition(totalLen);
         return true;
     }
@@ -130,6 +144,16 @@ public class DbnStreamReader : IDisposable, IAsyncDisposable
         return TryProcessRecord(sequence, out pos);
     }
 
+    public void PublishEmptyRecord()
+    {
+        _pipe.Reader.CancelPendingRead();
+    }
+
+    private void PublishRecordInternal()
+    {
+        _subscriptionMsgHandler.OnUpdate(RecordType.Internal, ReadOnlySpan<byte>.Empty);
+    }
+    
     private async Task Process()
     {
         var reader = _pipe.Reader;
@@ -138,21 +162,19 @@ public class DbnStreamReader : IDisposable, IAsyncDisposable
             while (true)
             {
                 var result = await reader.ReadAsync();
+                if (result.IsCanceled)
+                {
+                    PublishRecordInternal();
+                }
                 var buf = result.Buffer;
                 while (TryProcessSeq(buf, out var pos))
                 {
                     buf = buf.Slice(pos);
                 }
                 reader.AdvanceTo(buf.Start, buf.End);
-                if (result.IsCanceled || result.IsCompleted)
-                {
+                if (result.IsCompleted)
                     return;
-                }
             }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Processing data error");
         }
         finally
         {
@@ -186,7 +208,7 @@ public class DbnStreamReader : IDisposable, IAsyncDisposable
             // we need to complete first, on remote disconnect, else the pipe will not be emptied
             await writer.CompleteAsync();
             await processTask;
-            _pipe.Reset();
+            // leave pipe completed so it cannot be used anymore
         }
     }
     public void Disconnect()

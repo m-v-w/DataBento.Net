@@ -1,0 +1,58 @@
+[
+  {
+    "name": "length",
+    "type": "uint8_t"
+  },
+  {
+    "name": "rtype",
+    "type": "uint8_t"
+  },
+  {
+    "name": "publisher_id",
+    "type": "uint16_t"
+  },
+  {
+    "name": "instrument_id",
+    "type": "uint32_t"
+  },
+  {
+    "name": "ts_event",
+    "type": "uint64_t"
+  },
+  {
+    "name": "price",
+    "type": "int64_t"
+  },
+  {
+    "name": "size",
+    "type": "uint32_t"
+  },
+  {
+    "name": "action",
+    "type": "char"
+  },
+  {
+    "name": "side",
+    "type": "char"
+  },
+  {
+    "name": "flags",
+    "type": "uint8_t"
+  },
+  {
+    "name": "depth",
+    "type": "uint8_t"
+  },
+  {
+    "name": "ts_recv",
+    "type": "uint64_t"
+  },
+  {
+    "name": "ts_in_delta",
+    "type": "int32_t"
+  },
+  {
+    "name": "sequence",
+    "type": "uint32_t"
+  }
+]

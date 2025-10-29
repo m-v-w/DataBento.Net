@@ -21,7 +21,6 @@ public class BentoTcpClient : BackgroundService, ISystemMsgHandler
     private DateTime _lastMsgTime;
     
     private readonly string _host;
-    private readonly TimeSpan _staleConnectionTimeout = TimeSpan.FromSeconds(35);
     private readonly ILogger _logger;
     private readonly ILoggerFactory _loggerFactory;
     private readonly IRetryPolicy _retryPolicy;
@@ -50,11 +49,24 @@ public class BentoTcpClient : BackgroundService, ISystemMsgHandler
             throw new InvalidOperationException("Not connected");
         await _subscriptionHandler.Subscribe(keys, client, cancellationToken);
     }
+
+    public void PublishEmptyRecord()
+    {
+        _reader?.PublishEmptyRecord();
+    }
     private ILogger CreateLogger(string categoryName)
     {
         return _loggerFactory.CreateLogger($"{categoryName}-{_host}:{Port}");
     }
 
+    private void PrintStats(DbnStreamReader reader)
+    {
+        var quantiles = reader.LatencyStatistics.Quantiles();
+        if(quantiles.Length == 0)
+            return;
+        _logger.LogInformation("Latency Stats: {Quantiles}", string.Join(", ", 
+            reader.LatencyStatistics.Quantiles().Select(x => $"{x.TotalMilliseconds}ms")));
+    }
     private DbnStreamReader CreateReader(NetworkStream networkStream)
     {
         Stream stream = _config.CompressionMode switch
@@ -91,6 +103,7 @@ public class BentoTcpClient : BackgroundService, ISystemMsgHandler
                     {
                         await _reader.Write(spillover);
                         await _reader.Read(stoppingToken);
+                        PrintStats(_reader);
                     }
                 }
             }
@@ -127,7 +140,8 @@ public class BentoTcpClient : BackgroundService, ISystemMsgHandler
 
     public override Task StartAsync(CancellationToken cancellationToken)
     {
-        _connectionTimeoutTimer = new Timer(ConnectionTimeoutTick, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+        var interval = _config.FlushMsgInterval ?? TimeSpan.FromSeconds(1);
+        _connectionTimeoutTimer = new Timer(ConnectionTimeoutTick, null, interval, interval);
         return base.StartAsync(cancellationToken);
     }
     public override async Task StopAsync(CancellationToken cancellationToken)
@@ -141,6 +155,8 @@ public class BentoTcpClient : BackgroundService, ISystemMsgHandler
         var reader = _reader;
         if (reader == null)
             return;
+        if(_config.FlushMsgInterval.HasValue)
+            PublishEmptyRecord();
         var msgSeq = reader.MsgSeq;
         if (msgSeq > _lastMsgSeq)
         {
@@ -149,7 +165,7 @@ public class BentoTcpClient : BackgroundService, ISystemMsgHandler
             _lastMsgTime = DateTime.UtcNow;
             return;
         }
-        if ((DateTime.UtcNow - _lastMsgTime) < _staleConnectionTimeout)
+        if ((DateTime.UtcNow - _lastMsgTime) < _config.StaleConnectionTimeout)
             return;
         _logger.LogError("Connection stale, closing...");
         _lastMsgTime = DateTime.UtcNow;

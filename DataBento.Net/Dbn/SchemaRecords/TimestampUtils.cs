@@ -1,4 +1,4 @@
-﻿namespace DataBento.Net.Dbn.StatefulReader;
+﻿namespace DataBento.Net.Dbn.SchemaRecords;
 
 public static class TimestampUtils
 {
@@ -12,8 +12,11 @@ public static class TimestampUtils
 
     public static DateTime UnixNanoToDateTime(ulong unixNano)
     {
-        var ticks = checked((long)(unixNano / 100UL)) + UnixEpochTicks;
-        return new DateTime(ticks, DateTimeKind.Utc);
+        return new DateTime(UnixNanoToTicks(unixNano), DateTimeKind.Utc);
+    }
+    public static long UnixNanoToTicks(ulong unixNano)
+    {
+        return checked((long)(unixNano / 100UL)) + UnixEpochTicks;
     }
     public static TimeSpan UnixNanoToTimeSpan(ulong unixNano)
     {

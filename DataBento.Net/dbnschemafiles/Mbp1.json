@@ -1,0 +1,82 @@
+[
+  {
+    "name": "length",
+    "type": "uint8_t"
+  },
+  {
+    "name": "rtype",
+    "type": "uint8_t"
+  },
+  {
+    "name": "publisher_id",
+    "type": "uint16_t"
+  },
+  {
+    "name": "instrument_id",
+    "type": "uint32_t"
+  },
+  {
+    "name": "ts_event",
+    "type": "uint64_t"
+  },
+  {
+    "name": "price",
+    "type": "int64_t"
+  },
+  {
+    "name": "size",
+    "type": "uint32_t"
+  },
+  {
+    "name": "action",
+    "type": "char"
+  },
+  {
+    "name": "side",
+    "type": "char"
+  },
+  {
+    "name": "flags",
+    "type": "uint8_t"
+  },
+  {
+    "name": "depth",
+    "type": "uint8_t"
+  },
+  {
+    "name": "ts_recv",
+    "type": "uint64_t"
+  },
+  {
+    "name": "ts_in_delta",
+    "type": "int32_t"
+  },
+  {
+    "name": "sequence",
+    "type": "uint32_t"
+  },
+  {
+    "name": "bid_px_00",
+    "type": "int64_t"
+  },
+  {
+    "name": "ask_px_00",
+    "type": "int64_t"
+  },
+  {
+    "name": "bid_sz_00",
+    "type": "uint32_t"
+  },
+  {
+    "name": "ask_sz_00",
+    "type": "uint32_t"
+  },
+  {
+    "name": "bid_ct_00",
+    "type": "uint32_t"
+  },
+  {
+    "name": "ask_ct_00",
+    "type": "uint32_t"
+  }
+]

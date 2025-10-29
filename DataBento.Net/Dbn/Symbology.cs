@@ -1,7 +1,11 @@
 ﻿using System.ComponentModel;
+using System.Text.Json.Serialization;
+using DataBento.Net.Tcp.ControlMessages;
 
 namespace DataBento.Net.Dbn;
 
+
+[JsonConverter(typeof(JsonEnumSerializer<SymbolType>))]
 public enum SymbolType : byte
 {
     /*#[pyo3(name = "INSTRUMENT_ID")]

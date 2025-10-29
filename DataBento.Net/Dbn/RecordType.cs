@@ -27,5 +27,8 @@ public enum RecordType : byte
     Cbbo1M = 0xC1,
     Tcbbo = 0xC2,
     Bbo1S = 0xC3,
-    Bbo1M = 0xC4
+    Bbo1M = 0xC4,
+    
+    Internal = 0xFF
+    
 }

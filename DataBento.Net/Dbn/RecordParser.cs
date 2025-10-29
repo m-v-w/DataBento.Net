@@ -1,7 +1,29 @@
-﻿namespace DataBento.Net.Dbn;
+﻿using System.Text;
+using CommunityToolkit.HighPerformance.Buffers;
+using DataBento.Net.Dbn.SchemaRecords;
+
+namespace DataBento.Net.Dbn;
 
 public static class RecordParser
 {
+    public static object SchemaRecordToObject(RecordType type, ReadOnlySpan<byte> span, Metadata metadata)
+    {
+        switch (type)
+        {
+            case RecordType.InstrumentDef:
+                return metadata.Version switch
+                {
+                    1 => InstrumentDefStructV1.UnsafeReference(span),
+                    _ => throw new NotSupportedException($"InstrumentDef not supported in version {metadata.Version}")
+                };
+            case RecordType.Mbp1:
+                return Mbp1Struct.UnsafeReference(span);
+            default:
+                throw new NotSupportedException($"unsupported type {type}");
+        }
+    }
+    
+    
     internal static SystemMessage ParseSystemMsg(Metadata metadata, in RecordHeader header, ReadOnlySpan<byte> body)
     {
         if (metadata.Version == 1)
@@ -46,5 +68,20 @@ public static class RecordParser
         var sTypeOut = metadata.Version > 1 ? (SymbolType) body[pos++] : SymbolType.RawSymbol;
         var symbolOut = MetadataParser.ReadFixLenStringPooled(metadata.SymbolCStrLen, body, ref pos);
         return new SymbolMappingMsg(in header, sTypeIn, symbolIn, sTypeOut, symbolOut);
+    }
+
+    public static string ParseAscii(ReadOnlySpan<byte> span)
+    {
+        var nullIndex = span.IndexOf((byte) 0);
+        if (nullIndex >= 0)
+            span = span.Slice(0, nullIndex);
+        return Encoding.ASCII.GetString(span);
+    }
+    public static string ParseAsciiPooled(ReadOnlySpan<byte> span)
+    {
+        var nullIndex = span.IndexOf((byte) 0);
+        if (nullIndex >= 0)
+            span = span.Slice(0, nullIndex);
+        return StringPool.Shared.GetOrAdd(span, Encoding.ASCII);
     }
 }
