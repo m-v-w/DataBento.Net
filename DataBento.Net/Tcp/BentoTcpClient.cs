@@ -13,14 +13,17 @@ public class BentoTcpClient : BackgroundService, ISystemMsgHandler
 {
     private const string UrlSuffix = ".lsg.databento.com";
     private const int Port = 13000;
-    
-    public bool Streaming => _reader?.Streaming ?? false;
-    public bool Connected => _controlMsgClient?.Connected ?? false;
+
+    private bool Streaming => _reader?.Streaming ?? false;
+    private bool Connected => _controlMsgClient?.Connected ?? false;
+    public TcpClientState State => Streaming ? TcpClientState.Streaming 
+        : (Connected ? TcpClientState.Connected : (_stopped ? TcpClientState.Failed : TcpClientState.Disconnected));
     private DbnStreamReader? _reader;
     private ControlMsgClient? _controlMsgClient;
     private Timer? _connectionTimeoutTimer;
     private long _lastMsgSeq = -1;
     private DateTime _lastMsgTime;
+    private bool _stopped;
     
     private readonly string _host;
     private readonly ILogger _logger;
@@ -47,10 +50,24 @@ public class BentoTcpClient : BackgroundService, ISystemMsgHandler
 
     public async Task Subscribe(IEnumerable<SubscriptionKey> keys, CancellationToken cancellationToken=default)
     {
-        var client = _controlMsgClient;
-        if (client == null)
-            throw new InvalidOperationException("Not connected");
-        await _subscriptionHandler.Subscribe(keys, client, cancellationToken);
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            if(_stopped)
+                throw new InvalidOperationException("Client stopped");
+            if (Streaming)
+            {
+                var client = _controlMsgClient ?? throw new InvalidProgramException("Not controlMsgClient, but streaming?");
+                await _subscriptionHandler.Subscribe(keys, client, cancellationToken);
+                return;
+            }
+            _logger.LogInformation("Waiting for connection to subscribe...");
+            await WaitForConnectionAsync(cancellationToken);
+            while(!Streaming)
+            {
+                await Task.Delay(100, cancellationToken);
+            }
+        }
+        
     }
 
     public void PublishEmptyRecord()
@@ -131,13 +148,13 @@ public class BentoTcpClient : BackgroundService, ISystemMsgHandler
             if (stoppingToken.IsCancellationRequested)
             {
                 _logger.LogInformation("Connection closed"); 
-                return;
+                break;
             }
             var retryDelay = _retryPolicy.NextRetryDelay(retry++);
             if (retryDelay == null)
             {
                 _logger.LogError("All retry attempts failed");
-                return;
+                break;
             }
             _logger.LogInformation("Reconnecting in {Delay}", retryDelay);
             try
@@ -148,6 +165,7 @@ public class BentoTcpClient : BackgroundService, ISystemMsgHandler
                 // Ignore
             }
         }
+        _stopped = true;
     }
 
     public override Task StartAsync(CancellationToken cancellationToken)
@@ -161,6 +179,7 @@ public class BentoTcpClient : BackgroundService, ISystemMsgHandler
         if(_connectionTimeoutTimer != null)
             await _connectionTimeoutTimer.DisposeAsync();
         await base.StopAsync(cancellationToken);
+        _stopped = true;
     }
     private void ConnectionTimeoutTick(object? o)
     {
