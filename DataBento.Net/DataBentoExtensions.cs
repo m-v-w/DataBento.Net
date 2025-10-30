@@ -1,6 +1,5 @@
 ﻿using DataBento.Net.Subscriptions;
 using DataBento.Net.Tcp;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace DataBento.Net;

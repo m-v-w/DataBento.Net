@@ -1,6 +1,5 @@
 ﻿using System.Net.Http.Json;
 using DataBento.Net.Dbn;
-using DataBento.Net.Dbn.SchemaRecords;
 using DataBento.Net.Tcp.ControlMessages;
 using Microsoft.Extensions.Logging;
 

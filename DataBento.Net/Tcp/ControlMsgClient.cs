@@ -15,12 +15,15 @@ internal class ControlMsgClient : IDisposable
     private readonly ControlMsgHandler _controlMsgHandler;
     private readonly CancellationTokenSource _phaseCompleted = new ();
     private readonly SemaphoreSlim _sendLocker = new(1,1);
+    public bool Connected => _networkStream.Socket.Connected;
     internal ControlMsgClient(NetworkStream networkStream, ControlMsgHandler controlMsgHandler, ILogger logger)
     {
         _networkStream = networkStream;
         _controlMsgHandler = controlMsgHandler;
         _logger = logger;
     }
+
+    
 
     private void Complete()
     {

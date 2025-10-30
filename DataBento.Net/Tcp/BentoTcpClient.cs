@@ -2,6 +2,7 @@
 using DataBento.Net.Dbn;
 using DataBento.Net.Subscriptions;
 using DataBento.Net.Tcp.ControlMessages;
+using DataBento.Net.Utils;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ZstdSharp;
@@ -13,7 +14,8 @@ public class BentoTcpClient : BackgroundService, ISystemMsgHandler
     private const string UrlSuffix = ".lsg.databento.com";
     private const int Port = 13000;
     
-    public bool Connected => _reader?.Streaming ?? false;
+    public bool Streaming => _reader?.Streaming ?? false;
+    public bool Connected => _controlMsgClient?.Connected ?? false;
     private DbnStreamReader? _reader;
     private ControlMsgClient? _controlMsgClient;
     private Timer? _connectionTimeoutTimer;
@@ -28,6 +30,7 @@ public class BentoTcpClient : BackgroundService, ISystemMsgHandler
     private readonly DataBentoTcpConfig _config;
     private readonly ControlMsgHandler _controlMsgHandler;
     private readonly SubscriptionHandler _subscriptionHandler;
+    private readonly AsyncManualResetEvent _connectionEstablishedEvent = new ();
     
     public BentoTcpClient(ILoggerFactory loggerFactory, IRetryPolicy retryPolicy,
         ISubscriptionMsgHandler subscriptionMsgHandler, DataBentoTcpConfig config, ISubscriptionContainer subscriptionContainer)
@@ -78,6 +81,13 @@ public class BentoTcpClient : BackgroundService, ISystemMsgHandler
         return new DbnStreamReader(stream, _subscriptionMsgHandler, this, 
             CreateLogger("StreamReader"), stream == networkStream);
     }
+    public async Task WaitForConnectionAsync(CancellationToken cancellationToken=default)
+    {
+        while (!Connected)
+        {
+            await _connectionEstablishedEvent.WaitAsync(cancellationToken);
+        }
+    }
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var retry = 0;
@@ -92,6 +102,7 @@ public class BentoTcpClient : BackgroundService, ISystemMsgHandler
                 await using var stream = tcpClient.GetStream();
                 using (_controlMsgClient = new ControlMsgClient(stream, _controlMsgHandler, CreateLogger("ControlMsg")))
                 {
+                    _connectionEstablishedEvent.Set();
                     var spillover = await _controlMsgClient.Read(stoppingToken);
                     if(spillover.Length > 0 && _config.CompressionMode != CompressionMode.None)
                         throw new InvalidOperationException("Spillover data present with compression enabled");
@@ -115,6 +126,7 @@ public class BentoTcpClient : BackgroundService, ISystemMsgHandler
             {
                 _controlMsgClient = null;
                 _reader = null;
+                _connectionEstablishedEvent.Reset();
             }
             if (stoppingToken.IsCancellationRequested)
             {

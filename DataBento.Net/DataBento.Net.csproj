@@ -4,7 +4,7 @@
         <TargetFramework>net9.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <Version>0.0.3-alpha</Version>
+        <Version>0.0.4-alpha</Version>
         <Title>DataBento.Net databento.com client</Title>
         <Authors />
         <Description>databento.com client</Description>

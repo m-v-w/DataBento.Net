@@ -1,7 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-
-namespace DataBento.Net.Dbn.SchemaRecords;
+﻿namespace DataBento.Net.Dbn.SchemaRecords;
 
 public partial struct Mbp1Struct
 {

@@ -13,10 +13,12 @@ public class DataBentoClient : IHostedService
     private readonly Dictionary<string, BentoTcpClient> _clients = new();
     private readonly SemaphoreSlim _locker = new(1, 1);
 
-    public DataBentoClient(IOptions<DataBentoConfig> config, IServiceProvider serviceProvider)
+    public DataBentoClient(IOptions<DataBentoConfig> config, IServiceProvider serviceProvider, ISubscriptionContainer subscriptionContainer)
     {
         _config = config;
         _serviceProvider = serviceProvider;
+        if(subscriptionContainer.Datasets.Any())
+            throw new InvalidProgramException("SubscriptionContainer is not empty, use Subscribe method to add subscriptions.");
     }
     private BentoTcpClient CreateTcpClient(string dataset, ISubscriptionMsgHandler subscriptionMsgHandler)
     {
@@ -41,6 +43,7 @@ public class DataBentoClient : IHostedService
                 client = CreateTcpClient(dataset, handler);
                 _clients[dataset] = client;
                 await client.StartAsync(cancellationToken);
+                await client.WaitForConnectionAsync(cancellationToken);
             }
 
             await client.Subscribe(keys, cancellationToken);

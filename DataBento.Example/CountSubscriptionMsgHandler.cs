@@ -1,6 +1,5 @@
 ﻿using DataBento.Net.Dbn;
 using DataBento.Net.Dbn.SchemaRecords;
-using DataBento.Net.Subscriptions;
 using DataBento.Net.Tcp;
 
 namespace DataBento.Example;
