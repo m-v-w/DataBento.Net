@@ -9,6 +9,10 @@ namespace DataBento.Example;
 
 public class MetadataGetFields
 {
+    public static void Run()
+    {
+        MetadataGetFieldsExample().GetAwaiter().GetResult();
+    }
     public static async Task MetadataGetFieldsExample()
     { 
         var configuration = new ConfigurationBuilder().AddUserSecrets<MetadataGetFields>().Build();
@@ -22,7 +26,7 @@ public class MetadataGetFields
             configuration["ApiKey"] ?? throw new InvalidProgramException("Missing ApiKey configuration"));
         var serviceProvider = serviceCollection.BuildServiceProvider();
         var client = serviceProvider.GetRequiredService<BentoHistoryClient>();
-        var fields = await client.MetadataListFields(SchemaId.Mbp1, CancellationToken.None);
+        var fields = await client.MetadataListFields(SchemaId.Cmbp1, CancellationToken.None);
         Console.WriteLine(JsonSerializer.Serialize(fields, new JsonSerializerOptions() {WriteIndented = true}));
         
     }

@@ -10,5 +10,7 @@ public enum SchemaId : ushort
     InstrumentDef = 0x13,
     [Description("trades")]
     Trades = 0x00,
+    [Description("cmbp-1")]
+    Cmbp1 = 0xB1,
     Live=65535
 }

@@ -38,8 +38,9 @@ public class BentoHistoryClient
             ?? throw new InvalidDataException("Failed to deserialize response");
     }
 
-    public async Task<(Metadata metadata, List<object> records)> TimeSeriesGetRange(string dataset, SchemaId schema, DateOnly start, DateOnly? end, 
-        string? symbols, SymbolType? symbolTypeIn, SymbolType? symbolTypeOut, CancellationToken cancellationToken)
+    public async Task<(Metadata metadata, List<object> records)> TimeSeriesGetRange(string dataset, SchemaId schema, 
+        DateOnly start, DateOnly? end = null, string? symbols = null, SymbolType? symbolTypeIn = null,
+        SymbolType? symbolTypeOut = null, int? limit = null, CancellationToken cancellationToken = default)
     {
         //if(start.Kind != DateTimeKind.Utc)
             //throw new ArgumentException("start must be in UTC", nameof(start));
@@ -61,6 +62,8 @@ public class BentoHistoryClient
             parameters.Add(new ("stype_in", EnumSerializer<SymbolType>.ToString(symbolTypeIn.Value)));
         if(symbolTypeOut.HasValue)
             parameters.Add(new ("stype_out", EnumSerializer<SymbolType>.ToString(symbolTypeOut.Value)));
+        if(limit.HasValue)
+            parameters.Add(new ("limit", limit.Value.ToString()));
         using var request = new HttpRequestMessage(HttpMethod.Post, "v0/timeseries.get_range");
         request.Content = new FormUrlEncodedContent(parameters);
         using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);

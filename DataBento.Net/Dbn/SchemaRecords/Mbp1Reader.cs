@@ -1,4 +1,6 @@
-﻿namespace DataBento.Net.Dbn.SchemaRecords;
+﻿using DataBento.Net.Utils;
+
+namespace DataBento.Net.Dbn.SchemaRecords;
 
 public class Mbp1Reader
 {

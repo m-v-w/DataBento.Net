@@ -1,4 +1,4 @@
-﻿namespace DataBento.Net.Dbn.SchemaRecords;
+﻿namespace DataBento.Net.Utils;
 
 public static class TimestampUtils
 {

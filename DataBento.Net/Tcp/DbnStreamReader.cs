@@ -63,6 +63,7 @@ public class DbnStreamReader : IDisposable, IAsyncDisposable
                 break;
             case RecordType.Mbp0:
             case RecordType.Mbp1:
+            case RecordType.Cmbp1:
             case RecordType.InstrumentDef:
                 _subscriptionMsgHandler.OnUpdate(recordType, msg);
                 break;

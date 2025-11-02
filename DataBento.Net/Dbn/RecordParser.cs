@@ -17,7 +17,10 @@ public static class RecordParser
                     _ => throw new NotSupportedException($"InstrumentDef not supported in version {metadata.Version}")
                 };
             case RecordType.Mbp1:
+            case RecordType.Cmbp1:
                 return Mbp1Struct.UnsafeReference(span);
+            case RecordType.Mbp0:
+                return TradesStruct.UnsafeReference(span);
             default:
                 throw new NotSupportedException($"unsupported type {type}");
         }

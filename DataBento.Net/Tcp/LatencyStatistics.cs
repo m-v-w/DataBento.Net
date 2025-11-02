@@ -1,5 +1,6 @@
 ﻿using System.Buffers.Binary;
 using DataBento.Net.Dbn.SchemaRecords;
+using DataBento.Net.Utils;
 
 namespace DataBento.Net.Tcp;
 
